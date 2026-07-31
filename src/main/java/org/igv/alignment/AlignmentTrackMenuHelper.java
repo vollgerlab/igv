@@ -799,6 +799,9 @@ class AlignmentTrackMenuHelper {
         mappings.put("ZMW", AlignmentTrack.ColorOption.ZMW);
         mappings.put("split", AlignmentTrack.ColorOption.SPLIT);
 
+        // ponytail: shown unconditionally; detecting MA tags would mean scanning loaded alignments.
+        mappings.put("molecular annotation (MA)", AlignmentTrack.ColorOption.MOLECULAR_ANNOTATION);
+
         for (Map.Entry<String, AlignmentTrack.ColorOption> el : mappings.entrySet()) {
             JRadioButtonMenuItem mi = getColorMenuItem(el.getKey(), el.getValue());
             colorMenu.add(mi);

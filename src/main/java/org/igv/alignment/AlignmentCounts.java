@@ -1,6 +1,7 @@
 package org.igv.alignment;
 
 import htsjdk.tribble.Feature;
+import org.igv.alignment.ma.MaCounts;
 import org.igv.alignment.mods.BaseModificationCounts;
 
 /**
@@ -46,6 +47,10 @@ public interface AlignmentCounts extends Feature {
     BisulfiteCounts getBisulfiteCounts();
 
     default BaseModificationCounts getModifiedBaseCounts() {
+        return null;
+    }
+
+    default MaCounts getMaCounts() {
         return null;
     }
 

@@ -11,6 +11,7 @@ import org.igv.prefs.IGVPreferences;
 import org.igv.prefs.PreferencesManager;
 import org.igv.renderer.*;
 import org.igv.alignment.mods.BaseModficationFilter;
+import org.igv.alignment.ma.MaCoverageRenderer;
 import org.igv.alignment.mods.BaseModificationCoverageRenderer;
 import org.igv.tdf.TDFDataSource;
 import org.igv.tdf.TDFReader;
@@ -487,6 +488,9 @@ public class CoverageTrack extends AbstractTrack implements ScalableTrack {
                         BaseModficationFilter basemodFilter = alignmentTrack != null ? alignmentTrack.getRenderOptions().getBasemodFilter() : null;
                         float threshold = alignmentTrack.getRenderOptions().getBasemodThreshold();
                         BaseModificationCoverageRenderer.drawModifications(context, pX, bottomY, dX, barHeight, pos, alignmentCounts, colorOption, basemodFilter, threshold, simplexModifications);
+
+                    } else if (colorOption.isMolecularAnnotation()) {
+                        MaCoverageRenderer.drawAnnotations(context, pX, bottomY, dX, barHeight, pos, alignmentCounts);
 
                     } else {
                         if (refBases != null) {

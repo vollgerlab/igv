@@ -11,6 +11,7 @@ import org.igv.logging.LogManager;
 import org.igv.logging.Logger;
 import org.igv.prefs.IGVPreferences;
 import org.igv.prefs.PreferencesManager;
+import org.igv.alignment.ma.MaCounts;
 import org.igv.alignment.mods.BaseModificationCounts;
 import org.igv.ui.util.MessageUtils;
 import org.igv.util.ParsingUtils;
@@ -37,6 +38,7 @@ abstract public class BaseAlignmentCounts implements AlignmentCounts {
 
     private BisulfiteCounts bisulfiteCounts;
     private BaseModificationCounts baseModificationCounts;
+    private MaCounts maCounts;
 
 
     public BaseAlignmentCounts(int start, int end, AlignmentTrack.BisulfiteContext bisulfiteContext) {
@@ -55,6 +57,8 @@ abstract public class BaseAlignmentCounts implements AlignmentCounts {
         }
 
         baseModificationCounts = new BaseModificationCounts();
+
+        maCounts = new MaCounts(start, end);
 
     }
 
@@ -93,6 +97,11 @@ abstract public class BaseAlignmentCounts implements AlignmentCounts {
     }
 
     @Override
+    public MaCounts getMaCounts() {
+        return maCounts;
+    }
+
+    @Override
     public int getBucketSize() {
         return bucketSize;
     }
@@ -114,6 +123,9 @@ abstract public class BaseAlignmentCounts implements AlignmentCounts {
         }
         if (baseModificationCounts != null) {
             baseModificationCounts.incrementCounts(alignment);
+        }
+        if (maCounts != null) {
+            maCounts.incrementCounts(alignment);
         }
 
         int alignmentStart = alignment.getAlignmentStart();

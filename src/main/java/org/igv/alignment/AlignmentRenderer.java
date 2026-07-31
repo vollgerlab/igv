@@ -12,6 +12,7 @@ import org.igv.prefs.PreferencesManager;
 import org.igv.renderer.GraphicUtils;
 import org.igv.alignment.AlignmentTrack.ColorOption;
 import org.igv.alignment.BisulfiteBaseInfo.DisplayStatus;
+import org.igv.alignment.ma.MaRenderer;
 import org.igv.alignment.mods.BaseModificationRenderer;
 import org.igv.alignment.smrt.SMRTKineticsRenderer;
 import org.igv.track.RenderContext;
@@ -874,6 +875,11 @@ public class AlignmentRenderer {
             BaseModificationRenderer.drawModifications(alignment, bpStart, locScale, rowRect, context.getGraphics(), renderOptions);
         }
 
+        // Molecular annotations (MA tag)
+        if (colorOption.isMolecularAnnotation()) {
+            MaRenderer.drawAnnotations(alignment, bpStart, locScale, rowRect, context.getGraphics(), renderOptions);
+        }
+
         // Kinetic data
         if (colorOption.isSMRTKinetics()) {
             SMRTKineticsRenderer.drawSmrtKinetics(alignment, bpStart, locScale, rowRect, context.getGraphics(), colorOption);
@@ -1197,6 +1203,7 @@ public class AlignmentRenderer {
             case SMRT_CCS_FWD_PW:
             case SMRT_CCS_REV_IPD:
             case SMRT_CCS_REV_PW:
+            case MOLECULAR_ANNOTATION:
                 // Just a simple forward/reverse strand color scheme that won't clash with the
                 // methylation rectangles.
                 c = (alignment.getFirstOfPairStrand() == Strand.POSITIVE) ? bisulfiteColorFw1 : bisulfiteColorRev1;
