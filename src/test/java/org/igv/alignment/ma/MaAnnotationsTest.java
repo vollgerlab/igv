@@ -1,8 +1,11 @@
 package org.igv.alignment.ma;
 
+import org.igv.alignment.Alignment;
 import org.junit.Test;
 
+import java.lang.reflect.Proxy;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 
@@ -154,5 +157,60 @@ public class MaAnnotationsTest {
         assertNull(MaAnnotations.parse("1000;msp+:0-50", null, null));         // positions are 1-based
         assertNull(MaAnnotations.parse("1000;msp+P:100-50;msp+Q:200-60",
                 new byte[]{40, 30}, null));                                    // conflicting quality specs
+    }
+
+    /**
+     * MA/AQ/AN are not in the SAM spec yet, so files in circulation carry the draft spelling with a
+     * lower case second letter (Ma/Aq/An).  Both must resolve, with all caps preferred.
+     */
+    @Test
+    public void testDraftTagSpelling() {
+
+        // Draft spelling only
+        MaAnnotations draft = MaAnnotations.forAlignment(alignmentWithTags(Map.of(
+                "Ma", "1000;msp+P:100-50,200-60",
+                "Aq", new byte[]{40, 30})));
+        assertNotNull(draft);
+        assertEquals(2, draft.annotations.size());
+        assertEquals(40, draft.annotations.get(0).qualities()[0]);
+
+        // All caps spelling only
+        MaAnnotations standard = MaAnnotations.forAlignment(alignmentWithTags(Map.of(
+                "MA", "1000;msp+:100-50")));
+        assertNotNull(standard);
+        assertEquals(1, standard.annotations.size());
+
+        // Both present -- all caps wins, for MA and for the AQ it pairs with
+        MaAnnotations both = MaAnnotations.forAlignment(alignmentWithTags(Map.of(
+                "MA", "1000;msp+P:100-50",
+                "Ma", "1000;nuc+:500-147,700-147",
+                "AQ", new byte[]{55},
+                "Aq", new byte[]{11})));
+        assertNotNull(both);
+        assertEquals(List.of("msp"), both.typeNames());
+        assertEquals(1, both.annotations.size());
+        assertEquals(55, both.annotations.get(0).qualities()[0]);
+
+        // Neither present
+        assertNull(MaAnnotations.forAlignment(alignmentWithTags(Map.of())));
+    }
+
+    /**
+     * A minimal Alignment carrying nothing but tag values.  Alignment has 30 abstract methods and
+     * there is no mocking library on the test classpath, so a Proxy is cheaper than either stubbing
+     * them all or adding a dependency to build.gradle.  Only getAttribute is ever called, plus the
+     * Object methods the WeakHashMap cache needs.
+     */
+    private static Alignment alignmentWithTags(Map<String, Object> tags) {
+        return (Alignment) Proxy.newProxyInstance(
+                Alignment.class.getClassLoader(),
+                new Class<?>[]{Alignment.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getAttribute" -> tags.get((String) args[0]);
+                    case "hashCode" -> System.identityHashCode(proxy);
+                    case "equals" -> proxy == args[0];
+                    case "toString" -> "stub alignment";
+                    default -> null;
+                });
     }
 }

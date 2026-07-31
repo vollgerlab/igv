@@ -14,30 +14,22 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Per position counts of MA (molecular annotation) intervals over a loaded alignment interval, the
- * analog of {@link org.igv.alignment.mods.BaseModificationCounts}.
+ * Per position counts of MA (molecular annotation) intervals, the analog of
+ * {@link org.igv.alignment.mods.BaseModificationCounts}.
  * <p>
- * Counts are dense arrays rather than the position maps the base modification counts use.  MA
- * intervals tile a molecule -- nucleosomes and MSPs together cover nearly every base of a fiber --
- * so a map would hold an entry per covered position anyway, at much greater cost per entry.
+ * Dense arrays rather than the position maps the base modification counts use:  MA intervals tile a
+ * molecule, so a map would hold an entry per covered position anyway at greater cost per entry.
  */
 public class MaCounts {
 
     private final int start;
     private final int end;
 
-    /**
-     * Annotation type name -> count of reads carrying that annotation at each position of
-     * [start, end).  Arrays are allocated on first sighting of a type, so a file with no MA tags
-     * costs nothing beyond the empty map.  Insertion ordered so the coverage renderer sees types in
-     * the order the data presents them.
-     */
+    // Type name -> per position read counts over [start, end).  Allocated on first sighting, so a
+    // file with no MA tags costs nothing beyond the empty map.
     private final Map<String, int[]> countsByType = new LinkedHashMap<>();
 
-    /**
-     * Types ordered back to front, see {@link #getTypesInDrawOrder()}.  Rebuilt whenever a new type
-     * turns up, which in practice means once per interval.
-     */
+    // Rebuilt whenever a new type turns up, in practice once per interval
     private List<String> drawOrder;
 
     public MaCounts(int start, int end) {
@@ -47,8 +39,6 @@ public class MaCounts {
 
     /**
      * Increment counts for every genome position covered by an MA annotation on this alignment.
-     *
-     * @param alignment alignment to tally
      */
     public void incrementCounts(Alignment alignment) {
 
@@ -83,8 +73,7 @@ public class MaCounts {
 
             int[] counts = null;
 
-            // Same liftover MaRenderer performs, tallying positions instead of filling pixels.
-            // Blocks ascend in both read offset and genome position, hence the breaks.
+            // Same liftover MaRenderer performs, tallying positions instead of filling pixels
             for (AlignmentBlock block : blocks) {
 
                 if (block.isSoftClip()) {
@@ -130,19 +119,16 @@ public class MaCounts {
     }
 
     /**
-     * @return annotation type names seen in this interval, in first seen order
+     * @return type names seen in this interval, in first seen order
      */
     public Set<String> getTypes() {
         return Collections.unmodifiableSet(countsByType.keySet());
     }
 
     /**
-     * Types ordered back to front for drawing:  nucleosomes behind, then anything unrecognized, then
-     * MSPs, with FIREs painted last so they always read along the bottom of the coverage bar.
-     * <p>
-     * The order is fixed rather than derived from the counts at each position.  Ordering by count
-     * flips the z order from column to column wherever two types cross over, which makes a type
-     * appear to jump between foreground and background across the track.
+     * Types back to front for drawing:  nucleosomes behind, unrecognized types next, then MSPs, with
+     * FIREs painted last so they read along the bottom.  Fixed rather than derived from the counts,
+     * which would flip the z order wherever two types cross over.
      */
     public List<String> getTypesInDrawOrder() {
         if (drawOrder == null || drawOrder.size() != countsByType.size()) {
@@ -168,8 +154,6 @@ public class MaCounts {
     }
 
     /**
-     * @param type annotation type name
-     * @param pos  genome position
      * @return number of reads carrying an annotation of this type over this position
      */
     public int getCount(String type, int pos) {

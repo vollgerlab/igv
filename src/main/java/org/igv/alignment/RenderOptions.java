@@ -14,7 +14,9 @@ import org.w3c.dom.Element;
 
 import java.awt.*;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static org.igv.prefs.Constants.*;
 
@@ -62,6 +64,12 @@ public class RenderOptions implements Cloneable {
     private boolean invertGroupSorting;
     private Boolean hideSmallIndels;
     private Integer smallIndelThreshold;
+    /**
+     * MA (molecular annotation) types switched off.  Hidden rather than shown so a type that first
+     * appears in a newly loaded interval defaults to visible.  Not persisted to the session.
+     */
+    private Set<String> hiddenMaTypes = new HashSet<>();
+
     private BaseModficationFilter basemodFilter;
     private Float basemodThreshold;
     private Boolean basemodDistinguishStrands;
@@ -422,6 +430,21 @@ public class RenderOptions implements Cloneable {
 
     public int getSmallIndelThreshold() {
         return smallIndelThreshold == null ? getPreferences().getAsInt(SAM_SMALL_INDEL_BP_THRESHOLD) : smallIndelThreshold;
+    }
+
+    /**
+     * @return true if this MA annotation type should be drawn
+     */
+    public boolean isMaTypeVisible(String type) {
+        return !hiddenMaTypes.contains(type);
+    }
+
+    public void setMaTypeVisible(String type, boolean visible) {
+        if (visible) {
+            hiddenMaTypes.remove(type);
+        } else {
+            hiddenMaTypes.add(type);
+        }
     }
 
     public BaseModficationFilter getBasemodFilter() {

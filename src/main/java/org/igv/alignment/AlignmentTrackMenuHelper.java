@@ -109,6 +109,7 @@ class AlignmentTrackMenuHelper {
         addGroupMenuItem(e);
         addSortMenuItem();
         addColorByMenuItem();
+        addMolecularAnnotationMenuItem();
         addShadeAlignmentsMenuItem();
         //addFilterMenuItem();
         addPackMenuItem();
@@ -799,7 +800,7 @@ class AlignmentTrackMenuHelper {
         mappings.put("ZMW", AlignmentTrack.ColorOption.ZMW);
         mappings.put("split", AlignmentTrack.ColorOption.SPLIT);
 
-        // ponytail: shown unconditionally; detecting MA tags would mean scanning loaded alignments.
+        // Shown unconditionally; the submenu below is what gates on MA tags actually being present.
         mappings.put("molecular annotation (MA)", AlignmentTrack.ColorOption.MOLECULAR_ANNOTATION);
 
         for (Map.Entry<String, AlignmentTrack.ColorOption> el : mappings.entrySet()) {
@@ -897,6 +898,33 @@ class AlignmentTrackMenuHelper {
 
         add(colorMenu);
 
+    }
+
+    /**
+     * Checkboxes to show or hide MA (molecular annotation) types.  Checkboxes rather than the radio
+     * buttons the base modification menu uses, because MA types are layers rather than alternative
+     * calls at a position.  Only added when the loaded data carries MA tags.
+     */
+    void addMolecularAnnotationMenuItem() {
+
+        Set<String> maTypes = dataManager.getAllMaTypes();
+        if (maTypes.isEmpty()) {
+            return;
+        }
+
+        JMenu maMenu = new JMenu("Molecular annotations (MA)");
+
+        for (String type : maTypes) {
+            JCheckBoxMenuItem mi = new JCheckBoxMenuItem(type);
+            mi.setSelected(renderOptions.isMaTypeVisible(type));
+            mi.addActionListener(aEvt -> {
+                renderOptions.setMaTypeVisible(type, mi.isSelected());
+                alignmentTrack.repaint();
+            });
+            maMenu.add(mi);
+        }
+
+        add(maMenu);
     }
 
     void addShadeAlignmentsMenuItem() {

@@ -17,11 +17,9 @@ import java.util.WeakHashMap;
  * <p>
  * MA:Z:{@code <read_length>;<name><strand><qualspec>:<start>-<len>,<start>-<len>;<name2>...}
  * <p>
- * Positions in the tag are 1-based closed; they are converted to 0-based half-open here.
- * Every position must carry its length inline as {@code start-length}; a tag that omits a
- * length is rejected.  AQ is a flat byte array consumed in MA order, with as many values per
- * annotation as there are characters in its type's quality spec.  AN corresponds positionally
- * to <i>all</i> annotations, including those whose type has no quality spec.
+ * Tag positions are 1-based closed and are converted to 0-based half-open here.  AQ is a flat
+ * array consumed in MA order, as many values per annotation as its type's quality spec is long.
+ * AN corresponds positionally to all annotations, including those with no quality spec.
  *
  * @see <a href="https://github.com/fiberseq/fibertools-rs/tree/main/molecular-annotation">reference implementation</a>
  */
@@ -34,31 +32,22 @@ public class MaAnnotations {
 
     private static final byte[] NO_QUALITIES = new byte[0];
 
-    /**
-     * Sentinel for "this alignment has no usable MA tag".  A WeakHashMap cannot store a null
-     * value distinguishably, so the cache stores this instead and callers get null back.
-     */
+    // Cached in place of null, which a WeakHashMap cannot store distinguishably
     private static final MaAnnotations EMPTY = new MaAnnotations(0, List.of(), Map.of());
 
     private static final Map<Alignment, MaAnnotations> cache =
             Collections.synchronizedMap(new WeakHashMap<>());
 
     /**
-     * Read length as recorded in the MA tag, which is the length of the read at the time the
-     * annotations were made (it can differ from the current sequence length if the read was trimmed).
+     * Read length as recorded in the MA tag, i.e. at the time the annotations were made.  Can
+     * differ from the current sequence length if the read was trimmed.
      */
     public final int readLength;
 
-    /**
-     * All annotations, in MA tag order.
-     */
     public final List<MaAnnotation> annotations;
 
-    /**
-     * Annotation type name -> quality spec string ("", "P", "PQ", ...), in first-seen order.
-     * Only the length is used in v1 (it gives the AQ values consumed per annotation), but the
-     * characters are retained so quality values can be scaled per position later.
-     */
+    // Type name -> quality spec ("", "P", "PQ", ...), first-seen order.  Only the length is used
+    // so far; the characters are kept so values can be scaled per position later.
     private final Map<String, String> qualitySpecs;
 
     private MaAnnotations(int readLength, List<MaAnnotation> annotations, Map<String, String> qualitySpecs) {
@@ -68,11 +57,6 @@ public class MaAnnotations {
     }
 
     /**
-     * Parse raw tag values.
-     *
-     * @param ma the MA:Z tag value
-     * @param aq the AQ:B:C values, or null
-     * @param an the AN:Z tag value, or null
      * @return the parsed annotations, or null if the tag is missing or malformed (never throws)
      */
     public static MaAnnotations parse(String ma, byte[] aq, String an) {
@@ -194,10 +178,8 @@ public class MaAnnotations {
     }
 
     /**
-     * Read the MA / AQ / AN tags off an alignment and parse them.  Results are cached per
-     * alignment, including the "no MA tag" answer, so repeated renders do not re-check tags.
-     *
-     * @return the parsed annotations, or null if the alignment has no usable MA tag
+     * Read and parse the tags off an alignment.  Cached per alignment, including the "no MA tag"
+     * answer, so repeated renders do not re-check tags.
      */
     public static MaAnnotations forAlignment(Alignment alignment) {
 
@@ -207,10 +189,10 @@ public class MaAnnotations {
 
         MaAnnotations cached = cache.get(alignment);
         if (cached == null) {
-            Object ma = alignment.getAttribute("MA");
+            Object ma = getAttribute(alignment, "MA", "Ma");
             if (ma instanceof String maString) {
-                Object aq = alignment.getAttribute("AQ");   // htsjdk returns byte[] for B:C arrays
-                Object an = alignment.getAttribute("AN");
+                Object aq = getAttribute(alignment, "AQ", "Aq");  // htsjdk returns byte[] for B:C arrays
+                Object an = getAttribute(alignment, "AN", "An");
                 cached = parse(maString,
                         aq instanceof byte[] aqBytes ? aqBytes : null,
                         an instanceof String anString ? anString : null);
@@ -224,27 +206,33 @@ public class MaAnnotations {
     }
 
     /**
-     * Distinct annotation type names, in first-seen order.  A type name that is split across
-     * several MA sections (e.g. one per strand) appears once.
+     * These tags are not in the SAM spec yet, so files carry the draft spelling with a lower case
+     * second letter (Ma/Aq/An).  Both resolve, all caps preferred.  Same arrangement IGV has for
+     * the pre-spec Mm/Ml, see SAMAlignment.getBaseModificationSets.
+     */
+    private static Object getAttribute(Alignment alignment, String standard, String draft) {
+        Object value = alignment.getAttribute(standard);
+        return value != null ? value : alignment.getAttribute(draft);
+    }
+
+    /**
+     * Distinct type names, first-seen order.  A name split across several sections (one per
+     * strand, say) appears once.
      */
     public List<String> typeNames() {
         return List.copyOf(qualitySpecs.keySet());
     }
 
     /**
-     * Quality spec string for a type ("", "P", "PQ", ...), or null if the type is unknown.
-     * Its length is the number of AQ values each annotation of the type carries.
+     * Quality spec for a type, or null if unknown.  Its length is the AQ values per annotation.
      */
     public String qualitySpec(String typeName) {
         return qualitySpecs.get(typeName);
     }
 
     /**
-     * Convert an annotation's molecular coordinates to BAM / read-sequence coordinates.
-     * For a negative-strand alignment the read sequence is stored reverse complemented, so the
-     * interval flips to [readLength - end, readLength - start).
-     *
-     * @return int[]{startOffset, endOffset}, 0-based half-open
+     * Molecular coordinates -> BAM read-sequence offsets, 0-based half-open.  A negative-strand
+     * read is stored reverse complemented, so the interval flips.
      */
     public int[] toReadCoords(MaAnnotation a, boolean negativeStrand) {
         if (negativeStrand) {

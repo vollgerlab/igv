@@ -80,8 +80,8 @@ public class AlignmentTrack extends AbstractTrack implements IGVEventObserver {
         SMRT_CCS_FWD_PW,
         SMRT_CCS_REV_IPD,
         SMRT_CCS_REV_PW,
-        READ_NAME,
-        MOLECULAR_ANNOTATION;
+        MOLECULAR_ANNOTATION,
+        READ_NAME;
 
         public boolean isBaseMod() {
             return this == BASE_MODIFICATION || this == BASE_MODIFICATION_2COLOR;

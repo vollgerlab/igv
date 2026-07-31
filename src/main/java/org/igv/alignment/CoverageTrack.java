@@ -490,7 +490,8 @@ public class CoverageTrack extends AbstractTrack implements ScalableTrack {
                         BaseModificationCoverageRenderer.drawModifications(context, pX, bottomY, dX, barHeight, pos, alignmentCounts, colorOption, basemodFilter, threshold, simplexModifications);
 
                     } else if (colorOption.isMolecularAnnotation()) {
-                        MaCoverageRenderer.drawAnnotations(context, pX, bottomY, dX, barHeight, pos, alignmentCounts);
+                        MaCoverageRenderer.drawAnnotations(context, pX, bottomY, dX, barHeight, pos, alignmentCounts,
+                                alignmentTrack != null ? alignmentTrack.getRenderOptions() : null);
 
                     } else {
                         if (refBases != null) {

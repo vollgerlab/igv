@@ -12,6 +12,7 @@ import org.igv.feature.Range;
 import org.igv.feature.genome.Genome;
 import org.igv.prefs.IGVPreferences;
 import org.igv.prefs.PreferencesManager;
+import org.igv.alignment.ma.MaAnnotations;
 import org.igv.alignment.mods.BaseModificationKey;
 import org.igv.alignment.mods.BaseModificationSet;
 import org.igv.alignment.reader.AlignmentReader;
@@ -50,6 +51,7 @@ public class AlignmentDataManager implements IGVEventObserver {
     private Map<String, PEStats> peStats;
     private Set<BaseModificationKey> allBaseModificationKeys = new HashSet<>();
     private Set<String> simplexBaseModfications = new HashSet<>();
+    private Set<String> allMaTypes = new LinkedHashSet<>();
 
     private Range currentlyLoading;
     private AlignmentTrack.ExperimentType inferredType;
@@ -115,6 +117,13 @@ public class AlignmentDataManager implements IGVEventObserver {
      */
     public Set<BaseModificationKey> getAllBaseModificationKeys() {
         return allBaseModificationKeys;
+    }
+
+    /**
+     * Return all MA (molecular annotation) type names seen in loaded alignments
+     */
+    public Set<String> getAllMaTypes() {
+        return allMaTypes;
     }
 
     public boolean isPairedEnd() {
@@ -334,6 +343,10 @@ public class AlignmentDataManager implements IGVEventObserver {
                 for (BaseModificationSet bms : bmSets) {
                     allBaseModificationKeys.add(BaseModificationKey.getKey(bms.getBase(), bms.getStrand(), bms.getModification()));
                 }
+            }
+            MaAnnotations ma = MaAnnotations.forAlignment(a);
+            if (ma != null) {
+                allMaTypes.addAll(ma.typeNames());
             }
         }
 

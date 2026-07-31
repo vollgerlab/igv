@@ -6,12 +6,10 @@ import java.awt.*;
 import java.util.List;
 
 /**
- * Draws MA (molecular annotation) intervals on an alignment row.
- * <p>
- * The analog of {@link org.igv.alignment.mods.BaseModificationRenderer}, except that an MA entry is
- * an interval (start + length) on the molecule rather than a single base.  Annotation coordinates
- * are lifted from read space to genome space through the alignment blocks, so an interval spanning
- * a deletion or an intron is drawn as one piece per block.
+ * Draws MA (molecular annotation) intervals on an alignment row.  The analog of
+ * {@link org.igv.alignment.mods.BaseModificationRenderer}, except an MA entry is an interval rather
+ * than a single base.  Coordinates are lifted through the alignment blocks, so an interval spanning
+ * a deletion or intron is drawn as one piece per block.
  */
 public class MaRenderer {
 
@@ -48,16 +46,11 @@ public class MaRenderer {
         int clipLeft = (int) rowRect.getX();
         int clipRight = (int) rowRect.getMaxX();
 
-        // ponytail: this is a linear scan of every annotation on the read, on every repaint.  A
-        // fiber-seq read carries thousands of nuc/msp entries, so the ceiling is
-        // O(visible reads x annotations per read) per paint.  Annotations are not guaranteed to be
-        // in ascending order, so there is no early exit on the outer loop; sorting them here would
-        // cost more than the scan it saves.  The fix, if this ever shows up in a profile, is to sort
-        // once at parse time in MaAnnotations and binary search the visible read-offset window.
+        // Linear scan per repaint, O(visible reads x annotations per read).  Annotations are not
+        // guaranteed sorted, so there is no early exit here; sorting would cost more than it saves.
         for (MaAnnotation a : annotations) {
 
-            // Molecular coordinates -> offsets into the read sequence as stored in the BAM,
-            // flipping for negative strand reads.
+            // Molecular coordinates -> offsets into the read sequence as stored in the BAM
             int[] readCoords = ma.toReadCoords(a, negativeStrand);
             if (readCoords == null) {
                 continue;
@@ -68,14 +61,16 @@ public class MaRenderer {
                 continue;
             }
 
+            if (renderOptions != null && !renderOptions.isMaTypeVisible(a.type())) {
+                continue;
+            }
+
             Color color = null;
 
-            // Blocks are built in CIGAR order, so they ascend in both read offset and genome
-            // position.  That allows the two breaks below.
+            // Blocks ascend in read offset and genome position, hence the breaks below
             for (AlignmentBlock block : blocks) {
 
-                // ponytail: reads stored without a sequence (SEQ = "*") have empty base arrays, so
-                // there is nothing to map offsets against and their annotations are not drawn.
+                // Reads stored without a sequence (SEQ = "*") have nothing to map offsets against
                 ByteSubarray bases = block.getBases();
                 if (bases == null || bases.length == 0) {
                     continue;
@@ -91,9 +86,7 @@ public class MaRenderer {
                     continue;           // not there yet
                 }
 
-                // Intersect the annotation with the block in read offset space.  This is the CIGAR
-                // liftover:  offset o within a block maps to genome position
-                // block.getStart() + (o - blockStart).
+                // CIGAR liftover: offset o in a block maps to block.getStart() + (o - blockStart)
                 int fromOffset = Math.max(readStart, blockStart);
                 int toOffset = Math.min(readEnd, blockEnd);
 
@@ -103,9 +96,8 @@ public class MaRenderer {
                 int pX = (int) ((genomeStart - bpStart) / locScale);
                 int pEnd = (int) ((genomeEnd - bpStart) / locScale);
 
-                // Minimum width of 1 so short annotations survive zoom out.  Unlike the base
-                // modification renderer these are not widened to 3 pixels -- they are intervals with
-                // real boundaries, and padding them would misreport where a feature starts and ends.
+                // Minimum width 1 so short annotations survive zoom out.  Not widened to 3px like
+                // the basemod renderer -- these have real boundaries and padding would misreport them.
                 int dX = Math.max(1, pEnd - pX);
 
                 // Don't draw out of the clipping rect
